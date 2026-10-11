@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0a24">
+<title>Día de la Niña</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+
+<style>
+/* =========================================================
+   TOKENS
+   ========================================================= */
+:root{
+  --night:#0b0a24; --ink:#14123a; --indigo:#2b2a6e; --violet:#5b3fa8;
+  --pink:#ff7fb6; --blush:#ffd3e6; --mint:#b8f5dc; --butter:#ffe9a0; --lav:#cdb8ff;
+  --magenta:#ff2e88; --cyan:#22e4ff; --gold:#ffb81c; --leaf:#4be08a;
+  --px:'Press Start 2P', 'Courier New', monospace;
+  --body:'VT323', 'Courier New', monospace;
+  /* Cursor: corazón pixelado en SVG */
+  --cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='33' viewBox='0 0 12 11' shape-rendering='crispEdges'%3E%3Cpath transform='translate(1 1)' fill='%2314123a' d='M2 0h2v1h-2z M7 0h2v1h-2z M1 1h4v1h-4z M6 1h4v1h-4z M0 2h11v3h-11z M1 5h9v1h-9z M2 6h7v1h-7z M3 7h5v1h-5z M4 8h3v1h-3z M5 9h1v1h-1z'/%3E%3Cpath fill='%23ff2e5b' d='M2 0h2v1h-2z M7 0h2v1h-2z M1 1h4v1h-4z M6 1h4v1h-4z M0 2h11v3h-11z M1 5h9v1h-9z M2 6h7v1h-7z M3 7h5v1h-5z M4 8h3v1h-3z M5 9h1v1h-1z'/%3E%3Cpath fill='%23ffd0dc' d='M2 1h1v1h-1z M1 2h1v1h-1z'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box;margin:0;padding:0;cursor:var(--cursor) 4 3, auto}
+button,.clickable{cursor:var(--cursor) 4 3, pointer}
+html,body{height:100%;background:#000;overflow:hidden;font-family:var(--body);color:#fff;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0}
+:focus-visible{outline:4px dashed var(--cyan);outline-offset:4px}
+
+/* Marco pixelado con esquinas "mordidas" */
+.pxbox{background:var(--bg,#fff);
+  box-shadow:0 -4px 0 0 var(--b,#14123a),0 4px 0 0 var(--b,#14123a),-4px 0 0 0 var(--b,#14123a),4px 0 0 0 var(--b,#14123a)}
+
+/* =========================================================
+   ESCENAS
+   ========================================================= */
+.scene{position:fixed;inset:0;display:none;overflow:hidden}
+.scene.active{display:block}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;
+  padding:calc(76px + env(safe-area-inset-top,0px)) 18px calc(48px + env(safe-area-inset-bottom,0px))}
+.page > .inner{margin:auto;width:100%;max-width:980px}
+.lvl-title{font:clamp(14px,3.4vw,24px)/1.5 var(--px);color:var(--butter);text-shadow:3px 3px 0 var(--magenta);text-align:center}
+
+.star{position:absolute;animation:twinkle 2.4s steps(2) infinite}
+@keyframes twinkle{50%{opacity:.15}}
+
+/* =========================================================
+   HUD (botón volver + sonido)
+   ========================================================= */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:50}
+.hud-btn{pointer-events:auto;position:absolute;top:calc(14px + env(safe-area-inset-top,0px));
+  font:11px/1 var(--px);padding:12px 12px;color:var(--ink);background:var(--butter);
+  box-shadow:0 -3px 0 0 var(--ink),0 3px 0 0 var(--ink),-3px 0 0 0 var(--ink),3px 0 0 0 var(--ink),6px 7px 0 0 rgba(0,0,0,.4)}
+.hud-btn:hover{background:var(--cyan)}
+.hud-btn:active{transform:translateY(3px)}
+#backBtn{left:calc(16px + env(safe-area-inset-left,0px));background:var(--pink)}
+#backBtn::before{content:"< "}
+#sndBtn{right:calc(16px + env(safe-area-inset-right,0px))}
+body[data-scene="boot"] #hud{display:none}
+body[data-scene="map"] #backBtn{display:none}
+
+/* Transición de barrido de píxeles */
+#sweep{position:fixed;inset:0;width:100%;height:100%;z-index:9999;display:none}
+
+/* =========================================================
+   1. BOOT
+   ========================================================= */
+#boot{background:#000;text-align:center;padding:24px;align-items:center;justify-content:center;flex-direction:column;gap:34px}
+#boot.active{display:flex}
+#boot::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(rgba(0,0,0,0) 0 2px,rgba(0,0,0,.45) 2px 4px)}
+.crt{display:flex;flex-direction:column;align-items:center;gap:34px;animation:poweron 1s steps(10) both}
+@keyframes poweron{
+  0%{clip-path:inset(50% 35% 50% 35%);filter:brightness(5)}
+  35%{clip-path:inset(49.6% 0 49.6% 0);filter:brightness(3)}
+  100%{clip-path:inset(0);filter:brightness(1)}}
+.boot-heart{width:96px;height:auto;animation:beat 1s steps(2) infinite;filter:drop-shadow(0 0 14px #ff2e5b88)}
+@keyframes beat{50%{transform:scale(1.18)}}
+.boot-text{font:clamp(11px,2.7vw,18px)/2.1 var(--px);color:var(--blush);max-width:32em;text-shadow:0 0 14px #ff7fb6aa}
+.blink{animation:blink 1.1s steps(1) infinite}
+@keyframes blink{0%,60%{opacity:1}61%,100%{opacity:0}}
+
+/* =========================================================
+   2. MAPA
+   ========================================================= */
+#map{background:linear-gradient(#0b0a24 0 26%,#15123f 26% 42%,#241c63 42% 56%,#3b2a86 56% 68%,#6a3a9c 68% 78%,#b84a9d 78% 88%,#ff7fb6 88% 100%)}
+.moon{position:absolute;right:11%;top:11%;width:clamp(56px,9vw,112px);aspect-ratio:1;
+  clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%);
+  background:
+    linear-gradient(#e6d484,#e6d484) 26% 30%/18% 18% no-repeat,
+    linear-gradient(#e6d484,#e6d484) 60% 58%/24% 24% no-repeat,
+    linear-gradient(#e6d484,#e6d484) 38% 72%/12% 12% no-repeat,
+    #fff3b0}
+.hills{position:absolute;left:0;right:0;bottom:0;height:40%;background:#3a2f86;
+  clip-path:polygon(0 100%,0 56%,8% 56%,8% 40%,16% 40%,16% 24%,26% 24%,26% 40%,34% 40%,34% 56%,44% 56%,44% 70%,54% 70%,54% 54%,62% 54%,62% 36%,72% 36%,72% 20%,82% 20%,82% 36%,90% 36%,90% 52%,100% 52%,100% 100%)}
+.hills::after{content:"";position:absolute;left:0;right:0;bottom:0;height:58%;background:#1f5f6e;
+  clip-path:polygon(0 100%,0 40%,12% 40%,12% 22%,24% 22%,24% 40%,38% 40%,38% 60%,52% 60%,52% 36%,64% 36%,64% 18%,78% 18%,78% 38%,92% 38%,92% 55%,100% 55%,100% 100%)}
+.ground{position:absolute;left:0;right:0;bottom:0;height:78px;
+  background:
+    repeating-linear-gradient(90deg,transparent 0 46px,rgba(0,0,0,.28) 46px 50px) 0 26px/100% 20px,
+    repeating-linear-gradient(0deg,transparent 0 20px,rgba(0,0,0,.28) 20px 24px) 0 20px/100% 100%,
+    linear-gradient(#5df59b 0 10px,#26a860 10px 20px,#9a5a24 20px)}
+.map-scroll{position:absolute;inset:0 0 70px 0;overflow-y:auto;overflow-x:hidden;display:flex;
+  padding:calc(70px + env(safe-area-inset-top,0px)) 16px 30px}
+.map-inner{margin:auto;text-align:center;width:100%}
+.map-title{font:clamp(22px,5.4vw,46px)/1.3 var(--px);color:#fff;
+  text-shadow:4px 4px 0 var(--magenta),8px 8px 0 var(--cyan)}
+.map-hint{font-size:clamp(22px,3.4vw,30px);color:var(--butter);margin-top:20px}
+.blocks{display:flex;gap:clamp(20px,4.5vw,56px);justify-content:center;flex-wrap:wrap;margin-top:44px}
+.qblock{display:flex;flex-direction:column;align-items:center;gap:16px;width:clamp(150px,21vw,210px);padding:10px 0}
+.qface{width:100%;aspect-ratio:1;display:grid;place-items:center;
+  font:clamp(54px,8vw,84px) var(--px);color:#fff7c9;text-shadow:5px 5px 0 #8a4b00;
+  background:
+    linear-gradient(#8a4b00,#8a4b00) 10px 10px/8px 8px no-repeat,
+    linear-gradient(#8a4b00,#8a4b00) calc(100% - 10px) 10px/8px 8px no-repeat,
+    linear-gradient(#8a4b00,#8a4b00) 10px calc(100% - 10px)/8px 8px no-repeat,
+    linear-gradient(#8a4b00,#8a4b00) calc(100% - 10px) calc(100% - 10px)/8px 8px no-repeat,
+    var(--gold);
+  box-shadow:inset -8px -8px 0 #d98a00,inset 8px 8px 0 #ffd966,
+    0 -4px 0 #5a2d00,0 4px 0 #5a2d00,-4px 0 0 #5a2d00,4px 0 0 #5a2d00,8px 12px 0 rgba(0,0,0,.35)}
+.qlabel{width:100%;font:clamp(9px,1.25vw,11px)/1.7 var(--px);color:var(--ink);background:var(--blush);padding:12px 8px;text-align:center;
+  box-shadow:0 -4px 0 0 var(--ink),0 4px 0 0 var(--ink),-4px 0 0 0 var(--ink),4px 0 0 0 var(--ink),6px 8px 0 0 rgba(0,0,0,.35)}
+.qblock:hover .qface,.qblock:hover .qlabel,
+.qblock:focus-visible .qface,.qblock:focus-visible .qlabel{animation:hop .45s steps(4) 1}
+@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-26px)}}
+.qblock:active .qface{filter:brightness(1.15)}
+
+@media (max-width:640px){
+  .blocks{flex-direction:column;align-items:center;gap:20px;margin-top:30px}
+  .qblock{flex-direction:row;width:min(94%,340px);gap:16px;padding:6px 0}
+  .qface{width:84px;flex:none;font-size:44px}
+  .qlabel{flex:1;font-size:10px;text-align:left;padding:12px 10px}
+}
+
+/* =========================================================
+   3. NIVEL 1 · INVENTARIO
+   ========================================================= */
+#l1{background:conic-gradient(#171547 25%,#1d1a58 0 50%,#171547 0 75%,#1d1a58 0) 0 0/48px 48px}
+.inv{--bg:var(--indigo);--b:#fff;padding:clamp(16px,3vw,28px);position:relative;margin:4px}
+.inv-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px 20px;flex-wrap:wrap;margin-bottom:26px}
+.inv-head .lvl-title{text-align:left}
+.inv-sub{font-size:26px;color:var(--mint)}
+.slots{display:flex;flex-wrap:wrap;justify-content:center;gap:30px 22px}
+.slot{position:relative;flex:0 0 calc((100% - 44px)/3);max-width:300px;padding:0;text-align:left}
+.polaroid{display:block;background:#fff8ec;padding:10px 10px 8px;transform:rotate(var(--r,0deg));
+  box-shadow:0 -4px 0 0 var(--ink),0 4px 0 0 var(--ink),-4px 0 0 0 var(--ink),4px 0 0 0 var(--ink),8px 10px 0 0 rgba(0,0,0,.4);
+  transition:transform .15s steps(3)}
+.slot:hover .polaroid,.slot:focus-visible .polaroid{transform:rotate(var(--r,0deg)) translateY(-8px)}
+.photo{display:block;position:relative;aspect-ratio:1;overflow:hidden;
+  background:conic-gradient(#9a9ab8 25%,#7b7b9a 0 50%,#9a9ab8 0 75%,#7b7b9a 0) 0 0/24px 24px}
+.photo::before{content:"?";position:absolute;inset:0;display:grid;place-items:center;font:36px var(--px);color:rgba(255,255,255,.55)}
+.photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.cap{display:block;font:9px/1 var(--px);color:var(--ink);text-align:center;padding-top:10px}
+.qty{position:absolute;top:-12px;right:-10px;font:9px/1 var(--px);color:var(--ink);background:var(--butter);padding:6px 6px;z-index:2;
+  box-shadow:0 -3px 0 0 var(--ink),0 3px 0 0 var(--ink),-3px 0 0 0 var(--ink),3px 0 0 0 var(--ink)}
+@media (max-width:640px){
+  .slots{gap:26px 14px}
+  .slot{flex-basis:calc((100% - 14px)/2)}
+  .inv-head .lvl-title{text-align:center;width:100%}
+  .inv-sub{width:100%;text-align:center}
+}
+
+/* Modal con zoom por bloques */
+#modal{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:rgba(5,4,25,.9);padding:16px}
+#modal.open{display:flex}
+.zoomframe{background:#fff8ec;padding:12px;
+  box-shadow:0 -4px 0 0 #fff,0 4px 0 0 #fff,-4px 0 0 0 #fff,4px 0 0 0 #fff,10px 12px 0 0 rgba(0,0,0,.5)}
+.zoombox{position:relative;background:#8b8ba7;overflow:hidden}
+.tiles{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr)}
+.tile{background-repeat:no-repeat;background-size:400% 400%;transform:scale(0);animation:tilein .3s steps(4) forwards}
+@keyframes tilein{to{transform:scale(1)}}
+.zoombox .final{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;opacity:0}
+.zoombox.settled .final{opacity:1}
+.zoombox.settled .tiles{visibility:hidden}
+.zoomhint{font-size:24px;color:var(--butter)}
+
+/* =========================================================
+   4. NIVEL 2 · COFRE + PERGAMINO
+   ========================================================= */
+#l2{background:
+  repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 4px,transparent 4px 8px),
+  radial-gradient(ellipse at 50% 55%,#3a2a7a 0,#1a1650 45%,#0b0a24 100%)}
+#l2 .page > .inner{margin:0 auto;max-width:680px}
+.chest-wrap{position:fixed;left:0;right:0;top:50%;margin-top:-90px;display:flex;justify-content:center;z-index:5;pointer-events:none}
+.chest-wrap.gone{animation:chestgone .6s steps(6) forwards}
+@keyframes chestgone{to{opacity:0;transform:translateY(40px) scale(.8);visibility:hidden}}
+.chest{position:relative;width:176px;height:150px;perspective:700px}
+.lid,.base{position:absolute;left:0;width:100%;background:#a35a22;border:6px solid #3a1a08;
+  box-shadow:inset 0 -8px 0 #7a3f14,inset 8px 0 0 #bf7430,inset -8px 0 0 #7a3f14}
+.base{bottom:0;height:86px}
+.lid{top:0;height:70px;z-index:3;transform-origin:50% 100%;transition:transform .8s steps(8);
+  clip-path:polygon(0 24%,8% 24%,8% 10%,16% 10%,16% 0,84% 0,84% 10%,92% 10%,92% 24%,100% 24%,100% 100%,0 100%)}
+.chest-wrap.open .lid{transform:rotateX(112deg)}
+.band{position:absolute;top:0;bottom:0;width:18px;background:#ffd23f;box-shadow:inset -5px 0 0 #d98a00}
+.band.b1{left:22px}.band.b2{right:22px}
+.lock{position:absolute;left:50%;top:-10px;width:26px;height:30px;margin-left:-13px;background:#ffd23f;border:4px solid #3a1a08;box-shadow:inset -5px -5px 0 #d98a00}
+.lock::after{content:"";position:absolute;left:50%;top:9px;width:6px;height:9px;margin-left:-3px;background:#3a1a08}
+.inside{position:absolute;left:6px;right:6px;top:0;height:16px;background:#fff1a8;opacity:0;z-index:1}
+.chest-wrap.open .inside{opacity:1}
+.beam{position:absolute;left:50%;bottom:128px;width:150px;height:240px;margin-left:-75px;opacity:0;z-index:0;
+  background:repeating-linear-gradient(0deg,rgba(255,233,160,.55) 0 12px,rgba(255,233,160,.25) 12px 24px);
+  clip-path:polygon(28% 100%,72% 100%,100% 0,0 0)}
+.chest-wrap.open .beam{opacity:1;transition:opacity .5s steps(5)}
+.spark-field{position:absolute;left:0;right:0;top:0;height:0}
+.spark{position:absolute;left:50%;top:60px;width:8px;height:8px;opacity:0;animation:spark 1.4s steps(7) forwards}
+@keyframes spark{0%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
+
+.scroll{margin:26px auto 0;width:100%;visibility:hidden;clip-path:inset(0 0 100% 0)}
+.scroll.unroll{visibility:visible;animation:unroll 2s steps(20) forwards}
+@keyframes unroll{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(-12px -16px -12px -16px)}}
+.roll{position:relative;height:26px;margin:0 -10px;background:linear-gradient(#f0d89c 0 28%,#c99a52 28% 62%,#8a5a26 62%);
+  box-shadow:0 -4px 0 #4a2a10,0 4px 0 #4a2a10}
+.roll::before,.roll::after{content:"";position:absolute;top:-8px;bottom:-8px;width:12px;background:#5a3410}
+.roll::before{left:-12px}.roll::after{right:-12px}
+.paper{position:relative;background:
+    repeating-linear-gradient(0deg,rgba(120,80,30,.05) 0 4px,transparent 4px 8px),
+    #f3e1b0;
+  border-left:8px solid #c9a055;border-right:8px solid #c9a055;
+  box-shadow:inset 0 0 50px rgba(160,110,40,.3);
+  padding:clamp(22px,5vw,44px) clamp(24px,6vw,52px);
+  color:#4a2a12;font-size:clamp(23px,3.4vw,29px);line-height:1.22}
+.paper p{margin-bottom:.85em}
+.paper .to{color:#a3195b}
+.paper .sign{text-align:right;margin-bottom:0}
+.paper .end{text-align:center;font:clamp(11px,2.2vw,14px)/1.8 var(--px);color:#a3195b;margin:1.2em 0}
+
+/* =========================================================
+   5. NIVEL 3 · JARDÍN SECRETO
+   ========================================================= */
+#l3{background:#070620}
+.garden{position:absolute;inset:0;display:flex;flex-direction:column}
+.stage{position:relative;flex:1;min-height:0;overflow:hidden;
+  background:linear-gradient(#070620 0 34%,#0d0b36 34% 58%,#161250 58% 78%,#221a66 78%)}
+.stage .moon{right:9%;top:16%;width:clamp(44px,7vw,84px)}
+.stage .hills{height:36%;background:#262070}
+.stage .hills::after{background:#171650}
+.g-title{position:absolute;left:0;right:0;top:calc(64px + env(safe-area-inset-top,0px));font-size:clamp(10px,2.4vw,16px);padding:0 14px;pointer-events:none}
+.ff{position:absolute;width:5px;height:5px;background:#fff7a0;box-shadow:0 0 8px 2px rgba(255,247,160,.6);animation:ff 6s steps(10) infinite alternate}
+@keyframes ff{0%{transform:translate(0,0);opacity:0}25%{opacity:1}50%{transform:translate(18px,-26px);opacity:.3}75%{opacity:1}100%{transform:translate(-14px,-48px);opacity:0}}
+.plot{position:absolute;left:50%;bottom:0;width:0;height:0}
+#flower{position:absolute;left:0;bottom:0;transform:translateX(-50%);image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+#flower.bloom{filter:drop-shadow(0 0 10px var(--glow,#fff8))}
+.seed{position:absolute;left:0;bottom:0;width:12px;height:12px;margin-left:-6px;background:var(--gold);display:none;
+  box-shadow:inset -3px -3px 0 #d98a00,0 0 0 3px #5a2d00}
+.bloomfx{position:absolute;left:0;width:0;height:0}
+.bspark{position:absolute;left:0;top:0;width:8px;height:8px;opacity:0;animation:spark 1.3s steps(7) forwards}
+
+.gpanel{flex:none;display:flex;flex-direction:column;align-items:center;gap:16px;
+  padding:38px 16px calc(20px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(#5df59b 0 8px,#26a860 8px 16px,#5a3412 16px)}
+.dialog{--bg:var(--ink);--b:#fff;position:relative;width:min(100%,660px);min-height:128px;margin-top:6px;padding:26px 20px 16px;
+  box-shadow:0 -4px 0 0 #fff,0 4px 0 0 #fff,-4px 0 0 0 #fff,4px 0 0 0 #fff,0 0 0 8px var(--ink),6px 10px 0 4px rgba(0,0,0,.4)}
+.dlg-name{position:absolute;top:-18px;left:18px;font:10px/1 var(--px);color:var(--ink);background:var(--pink);padding:8px 10px;
+  box-shadow:0 -3px 0 0 var(--ink),0 3px 0 0 var(--ink),-3px 0 0 0 var(--ink),3px 0 0 0 var(--ink)}
+.dlg-text{font-size:clamp(23px,3.2vw,29px);line-height:1.2;color:#fff}
+.dlg-caret{display:inline-block;margin-left:8px;color:var(--cyan);font-style:normal;font-size:20px;animation:blink .9s steps(1) infinite}
+.coll{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;align-items:center}
+.coll-label{font:9px/1 var(--px);color:var(--butter);margin-right:6px}
+.cslot{width:30px;height:30px;display:grid;place-items:center;background:rgba(0,0,0,.35);font:18px/1 var(--body);
+  box-shadow:0 -2px 0 0 #3a1a08,0 2px 0 0 #3a1a08,-2px 0 0 0 #3a1a08,2px 0 0 0 #3a1a08}
+.cslot.off{font:10px var(--px);color:rgba(255,255,255,.3)}
+.plant-btn{font:clamp(11px,2.6vw,15px)/1.4 var(--px);color:#fff;background:var(--magenta);padding:18px 22px;
+  box-shadow:0 -4px 0 0 var(--ink),0 4px 0 0 var(--ink),-4px 0 0 0 var(--ink),4px 0 0 0 var(--ink),inset -6px -6px 0 #b4145f,inset 6px 6px 0 #ff7ab4,8px 10px 0 0 rgba(0,0,0,.4);
+  animation:btnpulse 1s steps(2) infinite}
+@keyframes btnpulse{50%{transform:translateY(-4px)}}
+.plant-btn:hover:not(:disabled){background:var(--cyan);color:var(--ink)}
+.plant-btn:active:not(:disabled){transform:translateY(4px);animation:none}
+.plant-btn:disabled{opacity:.6;animation:none}
+@media (max-height:540px){
+  .coll{display:none}
+  .dialog{min-height:84px;padding-top:22px}
+  .dlg-text{font-size:21px}
+  .gpanel{padding-top:30px;gap:12px}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .star,.ff,.boot-heart,.plant-btn{animation:none}
+}
+</style>
+</head>
+
+<body data-scene="boot">
+
+<!-- Transición de píxeles -->
+<canvas id="sweep"></canvas>
+
+<!-- HUD: siempre visible en niveles -->
+<div id="hud">
+  <button class="hud-btn" id="backBtn" type="button">Volver al Mapa</button>
+  <button class="hud-btn" id="sndBtn" type="button" aria-label="Activar o silenciar sonido">SON ON</button>
+</div>
+
+<!-- ============ 1. PANTALLA DE INICIO ============ -->
+<section id="boot" class="scene active" tabindex="0" aria-label="Pantalla de inicio">
+  <div class="crt">
+    <svg class="boot-heart" viewBox="0 0 11 10" shape-rendering="crispEdges" aria-hidden="true">
+      <path fill="#ff2e5b" d="M2 0h2v1h-2z M7 0h2v1h-2z M1 1h4v1h-4z M6 1h4v1h-4z M0 2h11v3h-11z M1 5h9v1h-9z M2 6h7v1h-7z M3 7h5v1h-5z M4 8h3v1h-3z M5 9h1v1h-1z"/>
+      <path fill="#ffd0dc" d="M2 1h1v1h-1z M1 2h1v1h-1z"/>
+    </svg>
+    <p class="boot-text blink">Inserta un latido para comenzar la aventura de la niña de mis ojos</p>
+  </div>
+</section>
+
+<!-- ============ 2. MUNDO PRINCIPAL ============ -->
+<section id="map" class="scene" aria-label="Menú de niveles">
+  <div id="stars1"></div>
+  <div class="moon"></div>
+  <div class="hills"></div>
+  <div class="ground"></div>
+  <div class="map-scroll">
+    <div class="map-inner">
+      <h1 class="map-title">Día de la Niña</h1>
+      <p class="map-hint">Golpea un bloque para elegir tu nivel</p>
+      <div class="blocks">
+        <button class="qblock" type="button" data-go="l1"><span class="qface">?</span><span class="qlabel">Nivel 1: Nosotros</span></button>
+        <button class="qblock" type="button" data-go="l2"><span class="qface">?</span><span class="qlabel">Nivel 2: Para ti</span></button>
+        <button class="qblock" type="button" data-go="l3"><span class="qface">?</span><span class="qlabel">Nivel 3: Tu Jardín Secreto</span></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. NIVEL 1: NOSOTROS ============ -->
+<section id="l1" class="scene" aria-label="Nivel 1">
+  <div class="page">
+    <div class="inner">
+      <div class="inv pxbox">
+        <div class="inv-head">
+          <h2 class="lvl-title">Nivel 1: Nosotros</h2>
+          <p class="inv-sub">Inventario de recuerdos: toca uno para verlo</p>
+        </div>
+
+        <!-- ==========================================================
+             CARGA DE IMÁGENES
+             Las fotos se buscan en la misma carpeta que index.html.
+             Si tus fotos son .png o .jpeg, cambia la extensión en el
+             atributo src de cada <img> (p. ej. FOTO01.png).
+             El modal usa ese mismo src, no hay que tocar nada más.
+             ========================================================== -->
+        <div class="slots">
+          <button class="slot clickable" type="button" aria-label="Abrir recuerdo 1">
+            <span class="polaroid" style="--r:-1.6deg"><span class="photo"><img src="FOTO01.jpg" alt="Recuerdo 1" onerror="this.style.display='none'"></span><span class="cap">Recuerdo 01</span></span><span class="qty">x1</span>
+          </button>
+          <button class="slot clickable" type="button" aria-label="Abrir recuerdo 2">
+            <span class="polaroid" style="--r:1.4deg"><span class="photo"><img src="FOTO02.jpg" alt="Recuerdo 2" onerror="this.style.display='none'"></span><span class="cap">Recuerdo 02</span></span><span class="qty">x1</span>
+          </button>
+          <button class="slot clickable" type="button" aria-label="Abrir recuerdo 3">
+            <span class="polaroid" style="--r:-1deg"><span class="photo"><img src="FOTO03.jpg" alt="Recuerdo 3" onerror="this.style.display='none'"></span><span class="cap">Recuerdo 03</span></span><span class="qty">x1</span>
+          </button>
+          <button class="slot clickable" type="button" aria-label="Abrir recuerdo 4">
+            <span class="polaroid" style="--r:1.8deg"><span class="photo"><img src="FOTO04.jpg" alt="Recuerdo 4" onerror="this.style.display='none'"></span><span class="cap">Recuerdo 04</span></span><span class="qty">x1</span>
+          </button>
+          <button class="slot clickable" type="button" aria-label="Abrir recuerdo 5">
+            <span class="polaroid" style="--r:-1.3deg"><span class="photo"><img src="FOTO05.jpg" alt="Recuerdo 5" onerror="this.style.display='none'"></span><span class="cap">Recuerdo 05</span></span><span class="qty">x1</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal de foto (zoom por bloques) -->
+<div id="modal" aria-modal="true" role="dialog">
+  <div class="zoomframe"><div class="zoombox" id="zoombox"></div></div>
+  <p class="zoomhint">Toca fuera de la foto para cerrar</p>
+</div>
+
+<!-- ============ 4. NIVEL 2: PARA TI ============ -->
+<section id="l2" class="scene" aria-label="Nivel 2">
+  <div class="chest-wrap" id="chestWrap" aria-hidden="true">
+    <div class="beam"></div>
+    <div class="chest">
+      <div class="base"><i class="inside"></i><i class="band b1"></i><i class="band b2"></i></div>
+      <div class="lid"><i class="band b1"></i><i class="band b2"></i><i class="lock"></i></div>
+    </div>
+    <div class="spark-field" id="sparkField"></div>
+  </div>
+
+  <div class="page">
+    <div class="inner">
+      <h2 class="lvl-title">Nivel 2: Para ti</h2>
+      <div class="scroll" id="scrollEl">
+        <div class="roll"></div>
+        <div class="paper">
+          <p class="to">Para la niña de mis ojos:</p>
+          <p>Hoy es el Día de la Niña, y el mundo entero se detiene un momento para celebrar a todas las niñas. Yo, desde mi rinconcito, te celebro a ti.</p>
+          <p>Celebro tu ternura, esa forma tan tuya de cuidar sin hacer ruido, de mirar con dulzura y de volver grande lo más pequeño. Celebro tu alegría, que se te escapa en cada sonrisa y se me contagia hasta en los días más grises.</p>
+          <p>Eres especial, de esas personas que no se parecen a nadie. Con solo existir haces más bonito mi mundo, y cada vez que te ríes siento que alguien le sube la luz a toda mi vida.</p>
+          <p>Nunca dejes de ser esa niña que sueña, que juega y que se asombra con las cosas simples. Yo voy a estar aquí, aplaudiéndote en cada nivel y cuidándote como el tesoro más grande que encontré.</p>
+          <p class="end">Feliz Día de la Niña</p>
+          <p class="sign">Con todo mi cariño,<br>quien te lleva en cada latido ❤️</p>
+        </div>
+        <div class="roll"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. NIVEL 3: TU JARDÍN SECRETO ============ -->
+<section id="l3" class="scene" aria-label="Nivel 3">
+  <div class="garden">
+    <div class="stage" id="stage">
+      <div id="stars3"></div>
+      <div class="moon"></div>
+      <div class="hills"></div>
+      <h2 class="lvl-title g-title">Nivel 3: Tu Jardín Secreto</h2>
+      <div id="flies"></div>
+      <div class="plot">
+        <i class="seed" id="seed"></i>
+        <canvas id="flower" width="13" height="25"></canvas>
+        <div class="bloomfx" id="bloomfx"></div>
+      </div>
+    </div>
+    <div class="gpanel">
+      <div class="dialog pxbox" id="dialog">
+        <div class="dlg-name" id="dlgName">Jardín secreto</div>
+        <p class="dlg-text"><span id="dlgText"></span><i class="dlg-caret" id="caret">▼</i></p>
+      </div>
+      <div class="coll" id="coll" aria-label="Flores descubiertas"></div>
+      <button class="plant-btn" id="plantBtn" type="button">Plantar semilla mágica</button>
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+'use strict';
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* =========================================================
+   AUDIO 8-BIT (sintetizado con Web Audio)
+   ========================================================= */
+let ac = null, soundOn = true;
+function initAudio(){
+  if(!ac){ const C = window.AudioContext || window.webkitAudioContext; if(C) ac = new C(); }
+  if(ac && ac.state === 'suspended') ac.resume();
+}
+function tone(freq, dur = .1, type = 'square', vol = .06, delay = 0, slideTo = null){
+  if(!ac || !soundOn) return;
+  const t = ac.currentTime + delay;
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g); g.connect(ac.destination);
+  o.start(t); o.stop(t + dur + .02);
+}
+const sfx = {
+  start(){ [523,659,784,1047,1319].forEach((f,i) => tone(f,.13,'square',.06,i*.08)); },
+  bump(){ tone(180,.12,'square',.07,0,90); tone(660,.08,'square',.04,.05); },
+  coin(){ tone(988,.07,'square',.06); tone(1319,.26,'square',.06,.07); },
+  close(){ tone(520,.07,'square',.05,0,260); },
+  blip(){ tone(820 + Math.random()*140,.04,'square',.025); },
+  plop(){ tone(320,.14,'triangle',.09,0,110); },
+  grow(i){ tone(300 + (i%12)*18,.05,'square',.03); },
+  petal(i){ tone(620 + (i%10)*40,.06,'triangle',.05); },
+  chest(){ tone(90,.6,'sawtooth',.05,0,220); tone(523,.1,'square',.05,.55); tone(784,.2,'square',.05,.65); },
+  unroll(){ for(let i=0;i<12;i++) tone(300 + i*36,.07,'triangle',.04,i*.15); },
+  done(){ [784,988,1175,1568].forEach((f,i) => tone(f,.14,'square',.05,i*.1)); }
+};
+$('#sndBtn').addEventListener('click', () => {
+  initAudio(); soundOn = !soundOn;
+  $('#sndBtn').textContent = soundOn ? 'SON ON' : 'SON OFF';
+  if(soundOn) sfx.coin();
+});
+
+/* =========================================================
+   TRANSICIÓN: BARRIDO DE PÍXELES
+   ========================================================= */
+const cv = $('#sweep'), cx = cv.getContext('2d');
+let sweeping = false;
+function runBatch(list, dur, fn, done){
+  let i = 0, t0 = null;
+  function step(t){
+    if(t0 === null) t0 = t;
+    const p = Math.min(1, (t - t0) / dur);
+    const upto = Math.floor(p * list.length);
+    while(i < upto) fn(list[i++]);
+    if(p < 1) requestAnimationFrame(step);
+    else { while(i < list.length) fn(list[i++]); done(); }
+  }
+  requestAnimationFrame(step);
+}
+function sweep(mid){
+  if(sweeping) return;
+  sweeping = true;
+  const w = cv.width = innerWidth, h = cv.height = innerHeight;
+  const size = innerWidth < 640 ? 28 : 40;
+  const cols = Math.ceil(w/size), rows = Math.ceil(h/size);
+  const cells = [];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++)
+    cells.push({x:c*size, y:r*size, k:(c/cols + r/rows)*.7 + Math.random()*.3});
+  cells.sort((a,b) => a.k - b.k);
+  const palette = ['#0b0a24','#0b0a24','#0b0a24','#2b2a6e','#ff2e88','#22e4ff'];
+  const dur = reduced ? 1 : 520;
+  cv.style.display = 'block';
+  runBatch(cells, dur,
+    c => { cx.fillStyle = palette[(Math.random()*palette.length)|0]; cx.fillRect(c.x,c.y,size,size); },
+    () => {
+      cx.fillStyle = '#0b0a24'; cx.fillRect(0,0,w,h);
+      mid();
+      setTimeout(() => runBatch(cells, dur,
+        c => cx.clearRect(c.x,c.y,size,size),
+        () => { cv.style.display = 'none'; sweeping = false; }), 90);
+    });
+}
+
+/* =========================================================
+   ESCENAS
+   ========================================================= */
+const scenes = { boot:$('#boot'), map:$('#map'), l1:$('#l1'), l2:$('#l2'), l3:$('#l3') };
+let current = 'boot';
+const hooks = {};
+function show(name){
+  hooks[current]?.leave?.();
+  scenes[current].classList.remove('active');
+  scenes[name].classList.add('active');
+  current = name;
+  document.body.dataset.scene = name;
+  $$('.page, .map-scroll', scenes[name]).forEach(p => p.scrollTop = 0);
+  hooks[name]?.enter?.();
+}
+const go = name => sweep(() => show(name));
+
+/* Estrellas */
+function makeStars(el, n){
+  const cols = ['#fff','#ffe9a0','#cdb8ff','#b8f5dc'], f = document.createDocumentFragment();
+  for(let i=0;i<n;i++){
+    const s = document.createElement('i'), z = Math.random() < .2 ? 4 : Math.random() < .5 ? 3 : 2;
+    s.className = 'star';
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*62}%;width:${z}px;height:${z}px;background:${cols[(Math.random()*cols.length)|0]};animation-delay:${(Math.random()*3).toFixed(2)}s`;
+    f.appendChild(s);
+  }
+  el.appendChild(f);
+}
+makeStars($('#stars1'), 70);
+makeStars($('#stars3'), 60);
+
+/* ---------- 1. BOOT ---------- */
+function startAdventure(){
+  if(current !== 'boot' || sweeping) return;
+  initAudio(); sfx.start();
+  go('map');
+}
+scenes.boot.addEventListener('click', startAdventure);
+document.addEventListener('keydown', e => {
+  if(current === 'boot' && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); startAdventure(); }
+});
+
+/* ---------- 2. MAPA ---------- */
+$$('.qblock').forEach(b => {
+  b.addEventListener('mouseenter', () => sfx.bump());
+  b.addEventListener('focus', () => sfx.bump());
+  b.addEventListener('click', () => { initAudio(); sfx.coin(); go(b.dataset.go); });
+});
+$('#backBtn').addEventListener('click', () => { initAudio(); sfx.close(); go('map'); });
+
+/* ---------- 3. NIVEL 1: GALERÍA ---------- */
+const modal = $('#modal'), zoombox = $('#zoombox');
+let zoomTimer = null;
+function openPhoto(img){
+  initAudio(); sfx.coin();
+  // El src se lee del <img> del HTML: cambia la extensión allá (.png, .jpeg)
+  const src = img.getAttribute('src');
+  const probe = new Image();
+  const build = ok => {
+    const N = 4, ratio = ok ? probe.naturalWidth / probe.naturalHeight : 4/3;
+    const maxW = Math.min(innerWidth - 64, 900), maxH = innerHeight - 190;
+    const w = Math.round(Math.min(maxW, maxH * ratio)), h = Math.round(w / ratio);
+    zoombox.className = 'zoombox';
+    zoombox.style.width = w + 'px'; zoombox.style.height = h + 'px';
+    zoombox.innerHTML = '';
+    const tiles = document.createElement('div'); tiles.className = 'tiles';
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+      const t = document.createElement('i'); t.className = 'tile';
+      if(ok){
+        t.style.backgroundImage = `url("${src}")`;
+        t.style.backgroundPosition = `${c*100/(N-1)}% ${r*100/(N-1)}%`;
+      } else {
+        t.style.background = (r+c)%2 ? '#9a9ab8' : '#7b7b9a';
+      }
+      t.style.animationDelay = ((r+c)*70) + 'ms';
+      tiles.appendChild(t);
+    }
+    zoombox.appendChild(tiles);
+    if(ok){
+      const im = new Image(); im.src = src; im.alt = img.alt; im.className = 'final';
+      zoombox.appendChild(im);
+    }
+    modal.classList.add('open');
+    clearTimeout(zoomTimer);
+    zoomTimer = setTimeout(() => zoombox.classList.add('settled'), (2*(N-1))*70 + 340);
+  };
+  probe.onload = () => build(true);
+  probe.onerror = () => build(false);
+  probe.src = src;
+}
+function closeModal(){
+  if(!modal.classList.contains('open')) return;
+  sfx.close(); modal.classList.remove('open'); clearTimeout(zoomTimer);
+}
+$$('.slot').forEach(s => s.addEventListener('click', () => openPhoto($('img', s))));
+modal.addEventListener('click', e => { if(!e.target.closest('.zoomframe')) closeModal(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
+hooks.l1 = { leave: closeModal };
+
+/* ---------- 4. NIVEL 2: COFRE Y PERGAMINO ---------- */
+const chestWrap = $('#chestWrap'), scrollEl = $('#scrollEl'), sparkField = $('#sparkField');
+let chestTimers = [];
+const later = (fn, ms) => chestTimers.push(setTimeout(fn, ms));
+function burstSparks(){
+  const cols = ['#ffe9a0','#ffd23f','#fff','#ff7fb6','#22e4ff'];
+  for(let i=0;i<24;i++){
+    const s = document.createElement('i'); s.className = 'spark';
+    s.style.setProperty('--dx', ((Math.random()-.5)*190|0) + 'px');
+    s.style.setProperty('--dy', (-(70 + Math.random()*150)|0) + 'px');
+    s.style.background = cols[i % cols.length];
+    s.style.animationDelay = (Math.random()*.5).toFixed(2) + 's';
+    sparkField.appendChild(s);
+  }
+}
+function stopChest(){ chestTimers.forEach(clearTimeout); chestTimers = []; sparkField.innerHTML = ''; }
+function startChest(){
+  stopChest();
+  chestWrap.className = 'chest-wrap';
+  scrollEl.className = 'scroll';
+  later(() => { chestWrap.classList.add('open'); sfx.chest(); burstSparks(); }, 700);
+  later(() => chestWrap.classList.add('gone'), 2700);
+  later(() => { scrollEl.classList.add('unroll'); sfx.unroll(); }, 3100);
+}
+hooks.l2 = { enter: startChest, leave: stopChest };
+
+/* ---------- 5. NIVEL 3: JARDÍN SECRETO ---------- */
+/* Cada flor: cabeza 9x9 (P=pétalo, D=sombra, C=centro, L=luz) + paleta + poema */
+const FLOWERS = [
+  { name:'Girasoles',  text:'Girasoles para la niña de mis amores. 🌻', emoji:'🌻',
+    pal:{P:'#ffd23f',D:'#8a4b14',C:'#5a2d0c',L:'#fff3a0'},
+    head:['....P....','.P.PPP.P.','..PPPPP..','.PPDDDPP.','PPPDCDPPP','.PPDDDPP.','..PPPPP..','.P.PPP.P.','....P....'] },
+  { name:'Rosas',      text:'Rosas para la niña más hermosa. 🌹', emoji:'🌹',
+    pal:{P:'#e0245e',D:'#9c1040',C:'#9c1040',L:'#ff6b94'},
+    head:['..PPPPP..','.PPLLLPP.','PPLDDDLPP','PLDPPPDLP','PLDPDPDLP','PLDPPPDLP','PPLDDDLPP','.PPLLLPP.','..PPPPP..'] },
+  { name:'Tulipanes',  text:'Tulipanes para la niña que amo más que a nadie. 🌷', emoji:'🌷',
+    pal:{P:'#ff5fa2',D:'#c22d76',C:'#c22d76',L:'#ff9ccb'},
+    head:['P...P...P','PP.PPP.PP','PPPPPPPPP','PPLPPPLPP','PPLPPPLPP','.PPPPPPP.','.PPDPDPP.','..PPPPP..','...PPP...'] },
+  { name:'Margaritas', text:'Margaritas para la niña que hace mi mundo más bonito con sus sonrisitas. 🌼', emoji:'🌼',
+    pal:{P:'#ffffff',D:'#cfd8ff',C:'#ffd23f',L:'#ffffff'},
+    head:['....P....','.P..P..P.','..PPPPP..','.PPCCCPP.','PPPCCCPPP','.PPCCCPP.','..PPPPP..','.P..P..P.','....P....'] },
+  { name:'Orquídeas',  text:'Orquídeas para la niña que convierte mis días en alegrías. 💜', emoji:'💜',
+    pal:{P:'#b45cff',D:'#7a2fc4',C:'#ffd23f',L:'#e3b5ff'},
+    head:['PP.....PP','PPP...PPP','PPPP.PPPP','.PPPLPPP.','..PLCLP..','.PPPLPPP.','.PPD.DPP.','..PD.DP..','...D.D...'] },
+  { name:'Lirios',     text:'Lirios para la niña que provoca mis más dulces delirios. 🤍', emoji:'🤍',
+    pal:{P:'#ffffff',D:'#ff9ec4',C:'#ffb300',L:'#ffd9e8'},
+    head:['....P....','P...P...P','.P..P..P.','..PPPPP..','PPPPCPPPP','..PPPPP..','.P..P..P.','P...D...P','....D....'] },
+  { name:'Claveles',   text:'Claveles para la niña que convierte mis latidos en cascabeles. ❤️', emoji:'❤️',
+    pal:{P:'#ff3b3b',D:'#a81414',C:'#a81414',L:'#ff8a8a'},
+    head:['.P.P.P.P.','PPPPPPPPP','PPLPPPLPP','PPPPLPPPP','PLPPPPPLP','PPPLPLPPP','PPPPPPPPP','.PPDPDPP.','..PPPPP..'] },
+  { name:'Jazmines',   text:'Jazmines para la niña que hace mis días más felices. 🌸', emoji:'🌸',
+    pal:{P:'#ffc2dc',D:'#ff8fbf',C:'#ffd23f',L:'#ffffff'},
+    head:['....P....','...PPP...','.P.PPP.P.','PPPPCPPPP','.PPCCCPP.','PPPPCPPPP','.P.PPP.P.','...PPP...','....P....'] },
+  { name:'Violetas',   text:'Violetas para la niña que hace mis sueños más bonitos y mis noches más completas. 💜', emoji:'💜',
+    pal:{P:'#6a3df0',D:'#3b1fa8',C:'#ffd23f',L:'#a98cff'},
+    head:['.PP...PP.','PPPP.PPPP','PPPPPPPPP','PPPLLLPPP','.PLLCLLP.','.PPLLLPP.','..PPDPP..','...PDP...','....D....'] },
+  { name:'Dalias',     text:'Dalias para la niña que elegiría en todas mis vidas. 🌺', emoji:'🌺',
+    pal:{P:'#ff4fa0',D:'#b0206a',C:'#ffd23f',L:'#ffa6d0'},
+    head:['...PPP...','.PPPLPPP.','.PPLPLPP.','PPLPPPLPP','PLPPCPPLP','PPLPPPLPP','.PPLPLPP.','.PPPLPPP.','...PPP...'] }
+];
+
+const GW = 13, GH = 25, HX = 2, SX = 6;                   // lienzo lógico 13x25, tallo en x=6
+const STEM = '#3fbf5a', STEM_D = '#228a3c', LEAF = '#5be67a';
+const LEAVES = {
+  21:[[7,21],[8,21],[8,20],[9,20]],
+  19:[[5,19],[4,19],[4,18],[3,18]],
+  15:[[7,15],[8,15],[8,14],[9,14]]
+};
+
+const stage = $('#stage'), canvas = $('#flower'), ctx = canvas.getContext('2d');
+const seed = $('#seed'), bloomfx = $('#bloomfx');
+const plantBtn = $('#plantBtn'), dlgName = $('#dlgName'), dlgText = $('#dlgText'), caret = $('#caret'), dialog = $('#dialog');
+const found = new Set();
+let bag = [], token = 0, planting = false, typing = false, skipType = false, scale = 10;
+
+/* luciérnagas */
+(() => {
+  const f = $('#flies');
+  for(let i=0;i<10;i++){
+    const d = document.createElement('i'); d.className = 'ff';
+    d.style.cssText = `left:${5 + Math.random()*90}%;bottom:${4 + Math.random()*42}%;animation-delay:-${(Math.random()*6).toFixed(1)}s;animation-duration:${(5 + Math.random()*4).toFixed(1)}s`;
+    f.appendChild(d);
+  }
+})();
+
+function updateCollection(){
+  const c = $('#coll'); c.innerHTML = '';
+  const lab = document.createElement('span'); lab.className = 'coll-label'; lab.textContent = `Flores ${found.size}/10`;
+  c.appendChild(lab);
+  FLOWERS.forEach(f => {
+    const s = document.createElement('span');
+    const has = found.has(f.name);
+    s.className = 'cslot' + (has ? '' : ' off');
+    s.textContent = has ? f.emoji : '?';
+    s.title = has ? f.name : 'Sin descubrir';
+    c.appendChild(s);
+  });
+}
+function setDialog(name, text){
+  dlgName.textContent = name; dlgText.textContent = text; caret.style.visibility = 'hidden';
+}
+function sizeFlower(){
+  const sh = stage.clientHeight || 300, sw = stage.clientWidth || 300;
+  scale = Math.max(4, Math.min(Math.floor(sh*.7/GH), Math.floor(sw*.7/GW), 16));
+  canvas.style.width = (GW*scale) + 'px';
+  canvas.style.height = (GH*scale) + 'px';
+}
+function clearFlower(){
+  ctx.clearRect(0,0,GW,GH);
+  canvas.classList.remove('bloom');
+  seed.style.display = 'none';
+  bloomfx.innerHTML = '';
+}
+function resetGarden(){
+  token++; planting = false; typing = false;
+  clearFlower(); sizeFlower(); updateCollection();
+  setDialog('Jardín secreto', 'Toca el botón para plantar una semilla mágica y descubre qué flor crece para ti.');
+  caret.style.visibility = 'visible';
+  plantBtn.disabled = false;
+}
+function nextFlower(){
+  if(!bag.length){
+    bag = FLOWERS.map((_,i) => i);
+    for(let i=bag.length-1;i>0;i--){ const j = (Math.random()*(i+1))|0; [bag[i],bag[j]] = [bag[j],bag[i]]; }
+  }
+  return FLOWERS[bag.pop()];
+}
+function buildBlocks(f){
+  const seq = [];
+  for(let y=GH-1;y>=9;y--){                                    // tallo creciendo de abajo hacia arriba
+    seq.push({x:SX, y, col:(y%4===0 ? STEM_D : STEM), d:50});
+    (LEAVES[y] || []).forEach(([x,yy]) => seq.push({x, y:yy, col:LEAF, d:18}));
+  }
+  for(let r=8;r>=0;r--){                                       // luego los pétalos, fila por fila
+    const row = [];
+    for(let c=0;c<9;c++){
+      const ch = f.head[r][c];
+      if(ch !== '.') row.push({x:c+HX, y:r, col:f.pal[ch], head:true, d:24, k:Math.abs(c-4)});
+    }
+    row.sort((a,b) => a.k - b.k).forEach(b => seq.push(b));
+  }
+  return seq;
+}
+async function dropSeed(my){
+  seed.style.display = 'block';
+  const dist = Math.max(60, stage.clientHeight - 30);
+  if(seed.animate) seed.animate(
+    [{transform:`translateY(${-dist}px)`},{transform:'translateY(0)'}],
+    {duration:reduced ? 1 : 750, easing:'steps(9)'});
+  await sleep(reduced ? 1 : 780);
+  if(my !== token) return false;
+  sfx.plop();
+  await sleep(320);
+  return my === token;
+}
+async function grow(f, my){
+  const seq = buildBlocks(f);
+  let n = 0;
+  for(const b of seq){
+    if(my !== token) return false;
+    if(n === 0) seed.style.display = 'none';
+    ctx.fillStyle = b.col; ctx.fillRect(b.x, b.y, 1, 1);
+    n++;
+    if(b.head) sfx.petal(n); else if(n % 2 === 0) sfx.grow(n);
+    await sleep(b.d);
+  }
+  return true;
+}
+function sparkles(f){
+  bloomfx.style.bottom = ((GH - 4) * scale) + 'px';
+  const cols = [f.pal.P, f.pal.L, '#ffffff', '#ffe9a0'];
+  for(let i=0;i<20;i++){
+    const s = document.createElement('i'); s.className = 'bspark';
+    s.style.setProperty('--dx', ((Math.random()-.5)*scale*14|0) + 'px');
+    s.style.setProperty('--dy', (-(20 + Math.random()*scale*6)|0) + 'px');
+    s.style.background = cols[i % cols.length];
+    s.style.animationDelay = (Math.random()*.4).toFixed(2) + 's';
+    bloomfx.appendChild(s);
+  }
+}
+async function typeText(f, my){
+  dlgName.textContent = f.name; dlgText.textContent = ''; caret.style.visibility = 'hidden';
+  typing = true; skipType = false;
+  const chars = Array.from(f.text);
+  let out = '';
+  for(let i=0;i<chars.length;i++){
+    if(my !== token) return false;
+    out += chars[i]; dlgText.textContent = out;
+    if(skipType){ dlgText.textContent = f.text; break; }
+    if(i % 2 === 0 && chars[i] !== ' ') sfx.blip();
+    await sleep(chars[i] === '.' ? 260 : chars[i] === ',' ? 140 : 36);
+  }
+  typing = false; caret.style.visibility = 'visible';
+  return true;
+}
+dialog.addEventListener('click', () => { if(typing) skipType = true; });
+
+async function plant(){
+  if(planting) return;
+  initAudio();
+  planting = true; const my = ++token;
+  plantBtn.disabled = true;
+  clearFlower(); sizeFlower();
+  setDialog('Semilla mágica', 'Algo está creciendo…');
+  if(!await dropSeed(my)) return;
+  const f = nextFlower();
+  canvas.style.setProperty('--glow', f.pal.P + 'cc');
+  if(!await grow(f, my)) return;
+  canvas.classList.add('bloom'); sparkles(f); sfx.done();
+  await sleep(450);
+  if(my !== token) return;
+  if(!await typeText(f, my)) return;
+  found.add(f.name); updateCollection();
+  planting = false; plantBtn.disabled = false;
+}
+plantBtn.addEventListener('click', plant);
+hooks.l3 = { enter: resetGarden, leave: () => { token++; planting = false; typing = false; clearFlower(); } };
+window.addEventListener('resize', () => { if(current === 'l3' && !planting) sizeFlower(); });
+
+updateCollection();
+})();
+</script>
+</body>
+</html>
